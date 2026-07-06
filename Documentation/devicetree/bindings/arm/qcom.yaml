@@ -1042,6 +1042,7 @@ properties:
       - items:
           - enum:
               - nothing,spacewar
+              - xiaomi,lisa
               - xiaomi,taoyao
           - const: qcom,sm7325
 

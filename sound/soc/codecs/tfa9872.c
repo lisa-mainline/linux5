@@ -6,6 +6,8 @@
  */
 
 #include <linux/bitfield.h>
+#include <linux/delay.h>
+#include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/regmap.h>
@@ -219,10 +221,22 @@ static bool tfa987x_setup_dcdc(struct device *dev, struct regmap *rmap, u16 rev)
 static int tfa987x_i2c_probe(struct i2c_client *i2c)
 {
 	struct device *dev = &i2c->dev;
+	struct gpio_desc *reset_gpio;
 	struct regmap *rmap;
 	unsigned int rev;
 	u32 channel_index = 0;
 	int ret;
+
+	reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	if (IS_ERR(reset_gpio))
+		return dev_err_probe(dev, PTR_ERR(reset_gpio),
+				     "Failed to get reset GPIO\n");
+
+	if (reset_gpio) {
+		usleep_range(1000, 2000);
+		gpiod_set_value_cansleep(reset_gpio, 0);
+		usleep_range(5000, 6000);
+	}
 
 	rmap = devm_regmap_init_i2c(i2c, &tfa987x_regmap_config);
 	if (IS_ERR(rmap))

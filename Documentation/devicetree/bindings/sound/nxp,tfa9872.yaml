@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/nxp,tfa9872.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: NXP TFA9872/TFA9873/TFA9874 Audio Amplifiers
+
+maintainers:
+  - Jens Reidel <adrian@travitia.xyz>
+
+allOf:
+  - $ref: dai-common.yaml#
+
+properties:
+  compatible:
+    oneOf:
+      - enum:
+          - nxp,tfa9872
+          - nxp,tfa9874
+      - items:
+          - const: nxp,tfa9873
+          - const: nxp,tfa9872
+
+  reg:
+    maxItems: 1
+
+  reset-gpios:
+    maxItems: 1
+
+  '#sound-dai-cells':
+    const: 1
+
+  sound-name-prefix: true
+
+  sound-channel:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    minimum: 0
+    maximum: 15
+    description: TDM speaker slot used by the amplifier.
+
+  max-coil-current:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Maximum coil current selector for the DC-DC converter.
+
+  first-boost-voltage:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: First boost voltage selector for the DC-DC converter.
+
+  second-boost-voltage:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Second boost voltage selector for the DC-DC converter.
+
+  first-boost-trip-lvl:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: First boost trip level selector for the DC-DC converter.
+
+  second-boost-trip-lvl:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Second boost trip level selector for the DC-DC converter.
+
+required:
+  - compatible
+  - reg
+  - '#sound-dai-cells'
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        audio-codec@34 {
+            compatible = "nxp,tfa9873", "nxp,tfa9872";
+            reg = <0x34>;
+            reset-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+            sound-name-prefix = "Speaker Left";
+            #sound-dai-cells = <1>;
+            sound-channel = <0>;
+        };
+    };
+
+...

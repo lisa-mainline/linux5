@@ -727,7 +727,7 @@
 		compatible = "nxp,tfa9873",
 			     "nxp,tfa9872";
 		reg = <0x34>;
-		reset-gpio = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		sound-name-prefix = "Speaker Left";
 		#sound-dai-cells = <1>;
 		sound-channel = <0>;
@@ -737,7 +737,7 @@
 		compatible = "nxp,tfa9873",
 			     "nxp,tfa9872";
 		reg = <0x35>;
-		reset-gpio = <&tlmm 6 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
 		sound-name-prefix = "Speaker Right";
 		#sound-dai-cells = <1>;
 		sound-channel = <1>;

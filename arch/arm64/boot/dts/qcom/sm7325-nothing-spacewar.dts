@@ -1025,7 +1025,7 @@
 		compatible = "nxp,tfa9873",
 			     "nxp,tfa9872";
 		reg = <0x34>;
-		reset-gpio = <&tlmm 101 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 101 GPIO_ACTIVE_HIGH>;
 
 		#sound-dai-cells = <1>;
 	};
@@ -1034,7 +1034,7 @@
 		compatible = "nxp,tfa9873",
 			     "nxp,tfa9872";
 		reg = <0x35>;
-		reset-gpio = <&tlmm 101 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 101 GPIO_ACTIVE_HIGH>;
 
 		#sound-dai-cells = <1>;
 	};

@@ -135,6 +135,7 @@ properties:
           - enum:
               - belling,bl24s64
               - giantec,gt24p64a
+              - giantec,gt24p64e
               - onnn,n24s64b
               - puya,p24c64f
           - const: atmel,24c64

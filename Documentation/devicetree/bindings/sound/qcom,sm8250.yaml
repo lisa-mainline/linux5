@@ -49,6 +49,7 @@ properties:
           - qcom,sm8250-sndcard
           - qcom,sm8450-sndcard
           - qcom,x1e80100-sndcard
+          - xiaomi,lisa-sndcard
           - xiaomi,taoyao-sndcard
 
   audio-routing:

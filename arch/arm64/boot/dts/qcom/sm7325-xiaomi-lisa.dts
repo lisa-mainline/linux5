@@ -664,7 +664,18 @@
 	clock-frequency = <100000>;
 	status = "okay";
 
-	/* awinic,aw8624_haptic @ 5a */
+	vibrator@5a {
+		compatible = "awinic,aw8624";
+		reg = <0x5a>;
+
+		interrupts-extended = <&tlmm 18 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&tlmm 35 GPIO_ACTIVE_LOW>;
+
+		pinctrl-0 = <&aw8624_int_default>;
+		pinctrl-names = "default";
+
+		awinic,resonant-freq-hz = <205>;
+	};
 };
 
 &ipa {
@@ -986,6 +997,13 @@
 		function = "gpio";
 		output-low;
 		bias-disable;
+	};
+
+	aw8624_int_default: aw8624-int-default-state {
+		pins = "gpio18";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
 	};
 
 	sw_ctrl_default: sw-ctrl-default-state {

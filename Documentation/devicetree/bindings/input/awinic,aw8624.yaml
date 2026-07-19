@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/input/awinic,aw8624.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Awinic AW8624 LRA Haptic Controller
+
+maintainers:
+  - Oleksii Onchul <oleksiionchul@gmail.com>
+
+properties:
+  compatible:
+    const: awinic,aw8624
+
+  reg:
+    maxItems: 1
+
+  vdd-supply:
+    description: Power supply for the controller.
+
+  reset-gpios:
+    description: Active-low hardware reset.
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  awinic,resonant-freq-hz:
+    description:
+      Nominal resonant frequency of the connected linear resonant actuator.
+      The driver uses this value to generate the RAM waveform.
+    minimum: 100
+    maximum: 300
+
+required:
+  - compatible
+  - reg
+  - reset-gpios
+  - interrupts
+  - awinic,resonant-freq-hz
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        vibrator@5a {
+            compatible = "awinic,aw8624";
+            reg = <0x5a>;
+            interrupts-extended = <&tlmm 18 IRQ_TYPE_EDGE_FALLING>;
+            reset-gpios = <&tlmm 35 GPIO_ACTIVE_LOW>;
+            awinic,resonant-freq-hz = <205>;
+        };
+    };

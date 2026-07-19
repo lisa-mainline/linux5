@@ -12,10 +12,10 @@
 
 #include <drm/display/drm_dsc.h>
 #include <drm/display/drm_dsc_helper.h>
+#include <drm/drm_atomic.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
-#include <drm/drm_probe_helper.h>
 
 struct csot_vtdr6130 {
 	struct drm_panel panel;
@@ -46,7 +46,8 @@ static void csot_vtdr6130_reset(struct csot_vtdr6130 *ctx)
 	usleep_range(11000, 12000);
 }
 
-static int csot_vtdr6130_on(struct csot_vtdr6130 *ctx)
+static int csot_vtdr6130_on(struct csot_vtdr6130 *ctx,
+			    unsigned int refresh_rate)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = dsi };
@@ -57,7 +58,10 @@ static int csot_vtdr6130_on(struct csot_vtdr6130 *ctx)
 				     0x00, 0x30, 0x00, 0x01);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb2, 0x58);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x6f, 0x02);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb2, 0x0c, 0x0c);
+	if (refresh_rate == 60)
+		mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb2, 0x0c, 0x0c);
+	else
+		mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb2, 0x12, 0x12);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xbe, 0x0e, 0x0b, 0x14, 0x13);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x6f, 0x05);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xbe, 0x8a);
@@ -194,7 +198,10 @@ static int csot_vtdr6130_on(struct csot_vtdr6130 *ctx)
 	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
 	mipi_dsi_dcs_set_column_address_multi(&dsi_ctx, 0x0000, 0x0437);
 	mipi_dsi_dcs_set_page_address_multi(&dsi_ctx, 0x0000, 0x095f);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x2f, 0x01);
+	if (refresh_rate == 60)
+		mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x2f, 0x02);
+	else
+		mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x2f, 0x01);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xff, 0xaa, 0x55, 0xa5, 0x81);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x6f, 0x0f);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfd, 0x01, 0x5a);
@@ -259,12 +266,29 @@ static int csot_vtdr6130_disable(struct drm_panel *panel)
 	return dsi_ctx.accum_err;
 }
 
-static int csot_vtdr6130_prepare(struct drm_panel *panel)
+static int csot_vtdr6130_atomic_prepare(struct drm_panel *panel,
+					struct drm_crtc *crtc,
+					struct drm_atomic_state *atomic_state)
 {
 	struct csot_vtdr6130 *ctx = to_csot_vtdr6130(panel);
 	struct drm_dsc_picture_parameter_set pps;
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
+	struct drm_crtc_state *new_crtc_state = NULL;
+	unsigned int refresh_rate = 90;
 	int ret;
+
+	if (atomic_state)
+		new_crtc_state = drm_atomic_get_new_crtc_state(atomic_state, crtc);
+
+	if (new_crtc_state) {
+		refresh_rate = drm_mode_vrefresh(&new_crtc_state->mode);
+		if (refresh_rate != 60 && refresh_rate != 90) {
+			dev_warn(panel->dev,
+				 "Unsupported refresh rate %u Hz, using 90 Hz\n",
+				 refresh_rate);
+			refresh_rate = 90;
+		}
+	}
 
 	ret = regulator_bulk_enable(ARRAY_SIZE(csot_vtdr6130_supplies),
 				    ctx->supplies);
@@ -273,7 +297,7 @@ static int csot_vtdr6130_prepare(struct drm_panel *panel)
 
 	csot_vtdr6130_reset(ctx);
 
-	ret = csot_vtdr6130_on(ctx);
+	ret = csot_vtdr6130_on(ctx, refresh_rate);
 	if (ret < 0) {
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 		goto err;
@@ -313,15 +337,15 @@ static const struct drm_display_mode csot_vtdr6130_modes[] = {
 	{
 		/* 90Hz mode */
 		.clock =
-			(1080 + 16 + 8 + 8) * (2400 + 1212 + 4 + 8) * 90 / 1000,
+			(1080 + 16 + 8 + 8) * (2400 + 4 + 4 + 8) * 90 / 1000,
 		.hdisplay = 1080,
 		.hsync_start = 1080 + 16,
 		.hsync_end = 1080 + 16 + 8,
 		.htotal = 1080 + 16 + 8 + 8,
 		.vdisplay = 2400,
-		.vsync_start = 2400 + 1212,
-		.vsync_end = 2400 + 1212 + 4,
-		.vtotal = 2400 + 1212 + 4 + 8,
+		.vsync_start = 2400 + 4,
+		.vsync_end = 2400 + 4 + 4,
+		.vtotal = 2400 + 4 + 4 + 8,
 		.width_mm = 68,
 		.height_mm = 152,
 		.type = DRM_MODE_TYPE_DRIVER,
@@ -347,18 +371,32 @@ static const struct drm_display_mode csot_vtdr6130_modes[] = {
 static int csot_vtdr6130_get_modes(struct drm_panel *panel,
 				   struct drm_connector *connector)
 {
-	int count = 0;
+	int i;
 
-	for (int i = 0; i < ARRAY_SIZE(csot_vtdr6130_modes); i++) {
-		count += drm_connector_helper_get_modes_fixed(connector,
-							      &csot_vtdr6130_modes[i]);
+	for (i = 0; i < ARRAY_SIZE(csot_vtdr6130_modes); i++) {
+		const struct drm_display_mode *m = &csot_vtdr6130_modes[i];
+		struct drm_display_mode *mode;
+
+		mode = drm_mode_duplicate(connector->dev, m);
+		if (!mode)
+			return -ENOMEM;
+
+		if (i == 0)
+			mode->type |= DRM_MODE_TYPE_PREFERRED;
+
+		drm_mode_set_name(mode);
+		drm_mode_probed_add(connector, mode);
 	}
 
-	return count;
+	connector->display_info.width_mm = csot_vtdr6130_modes[0].width_mm;
+	connector->display_info.height_mm = csot_vtdr6130_modes[0].height_mm;
+	connector->display_info.bpc = 8;
+
+	return ARRAY_SIZE(csot_vtdr6130_modes);
 }
 
 static const struct drm_panel_funcs csot_vtdr6130_panel_funcs = {
-	.prepare = csot_vtdr6130_prepare,
+	.atomic_prepare = csot_vtdr6130_atomic_prepare,
 	.unprepare = csot_vtdr6130_unprepare,
 	.disable = csot_vtdr6130_disable,
 	.get_modes = csot_vtdr6130_get_modes,

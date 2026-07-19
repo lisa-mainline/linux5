@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2025, Jens Reidel <adrian@travitia.xyz>
+// Copyright (c) 2026, Oleksii Onchul <oleksiionchul@gmail.com>
 
 #include <linux/backlight.h>
 #include <linux/delay.h>
@@ -23,6 +24,7 @@ struct csot_vtdr6130 {
 	struct drm_dsc_config dsc;
 	struct gpio_desc *reset_gpio;
 	struct regulator_bulk_data *supplies;
+	bool first_prepare;
 };
 
 static const struct regulator_bulk_data csot_vtdr6130_supplies[] = {
@@ -295,6 +297,30 @@ static int csot_vtdr6130_atomic_prepare(struct drm_panel *panel,
 	if (ret < 0)
 		return ret;
 
+	/*
+	 * The bootloader may leave the panel powered in a state that cannot be
+	 * cleared by toggling reset alone. Perform one complete power cycle
+	 * before the first initialization.
+	 */
+	if (ctx->first_prepare) {
+		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+
+		ret = regulator_bulk_disable(ARRAY_SIZE(csot_vtdr6130_supplies),
+					     ctx->supplies);
+		if (ret < 0)
+			goto err;
+
+		msleep(20);
+
+		ret = regulator_bulk_enable(ARRAY_SIZE(csot_vtdr6130_supplies),
+					    ctx->supplies);
+		if (ret < 0)
+			return ret;
+
+		ctx->first_prepare = false;
+	}
+
+	usleep_range(5000, 6000);
 	csot_vtdr6130_reset(ctx);
 
 	ret = csot_vtdr6130_on(ctx, refresh_rate);
@@ -480,6 +506,7 @@ static int csot_vtdr6130_probe(struct mipi_dsi_device *dsi)
 				     "Failed to get reset-gpios\n");
 
 	ctx->dsi = dsi;
+	ctx->first_prepare = true;
 	mipi_dsi_set_drvdata(dsi, ctx);
 
 	dsi->lanes = 4;

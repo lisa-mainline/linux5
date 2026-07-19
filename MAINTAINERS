@@ -4302,6 +4302,13 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/iio/adc/avia-hx711.yaml
 F:	drivers/iio/adc/hx711.c
 
+AWINIC AW8624 HAPTIC DRIVER
+M:	Oleksii Onchul <oleksiionchul@gmail.com>
+L:	linux-input@vger.kernel.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/input/awinic,aw8624.yaml
+F:	drivers/input/misc/aw8624.c
+
 AWINIC AW99706 WLED BACKLIGHT DRIVER
 M:	Junjie Cao <caojunjie650@gmail.com>
 S:	Maintained

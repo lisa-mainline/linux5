@@ -1250,9 +1250,11 @@
 };
 
 &usb_1 {
+	/* USB 2.0 only */
 	qcom,select-utmi-as-pipe-clk;
 
 	maximum-speed = "high-speed";
+	/* Remove USB3 phy */
 	phys = <&usb_1_hsphy>;
 	phy-names = "usb2-phy";
 

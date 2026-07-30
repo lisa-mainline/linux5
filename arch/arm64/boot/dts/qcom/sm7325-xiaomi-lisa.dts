@@ -1278,5 +1278,7 @@
 };
 
 &wifi {
+	qcom,calibration-variant = "Xiaomi_lisa";
+
 	status = "okay";
 };

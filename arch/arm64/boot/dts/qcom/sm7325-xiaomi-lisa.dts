@@ -13,6 +13,8 @@
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
+#include <dt-bindings/sound/qcom,q6afe.h>
+#include <dt-bindings/sound/qcom,q6asm.h>
 
 #include "sm7325.dtsi"
 #include "pm7325.dtsi"
@@ -198,6 +200,37 @@
 			qcom,vmid = <QCOM_SCM_VMID_MSS_MSA>,
 				    <QCOM_SCM_VMID_NAV>;
 		};
+	};
+
+	wcd9385: audio-codec {
+		compatible = "qcom,wcd9385-codec";
+
+		pinctrl-0 = <&wcd_reset_n>;
+		pinctrl-1 = <&wcd_reset_n_sleep>;
+		pinctrl-names = "default", "sleep";
+
+		reset-gpios = <&tlmm 83 GPIO_ACTIVE_LOW>;
+
+		vdd-rxtx-supply = <&vreg_l18b_1p8>;
+		vdd-io-supply = <&vreg_l18b_1p8>;
+		vdd-buck-supply = <&vreg_l17b_1p8>;
+		vdd-mic-bias-supply = <&vreg_bob>;
+
+		qcom,micbias1-microvolt = <2750000>;
+		qcom,micbias2-microvolt = <2750000>;
+		qcom,micbias3-microvolt = <2750000>;
+		qcom,micbias4-microvolt = <2750000>;
+
+		qcom,mbhc-buttons-vthreshold-microvolt = <75000 150000 237000 500000
+							  500000 500000 500000
+							  500000>;
+		qcom,mbhc-headset-vthreshold-microvolt = <1700000>;
+		qcom,mbhc-headphone-vthreshold-microvolt = <50000>;
+
+		qcom,rx-device = <&wcd_rx>;
+		qcom,tx-device = <&wcd_tx>;
+
+		#sound-dai-cells = <1>;
 	};
 
 	vph_pwr: vph-pwr-regulator {
@@ -586,6 +619,52 @@
 	firmware-name = "qcom/sm7325/xiaomi/lisa/a660_zap.mbn";
 };
 
+&lpass_audiocc {
+	compatible = "qcom,qcm6490-lpassaudiocc";
+	/delete-property/ power-domains;
+};
+
+&lpass_rx_macro {
+	status = "okay";
+};
+
+&lpass_rx_swr_clk {
+	drive-strength = <2>;
+	slew-rate = <1>;
+	bias-disable;
+};
+
+&lpass_rx_swr_data {
+	drive-strength = <2>;
+	slew-rate = <1>;
+	bias-bus-hold;
+};
+
+&lpass_tx_macro {
+	status = "okay";
+};
+
+&lpass_tx_swr_clk {
+	drive-strength = <2>;
+	slew-rate = <1>;
+	bias-disable;
+};
+
+&lpass_tx_swr_data {
+	drive-strength = <2>;
+	slew-rate = <1>;
+	bias-bus-hold;
+};
+
+&lpass_va_macro {
+	vdd-micb-supply = <&vreg_bob>;
+
+	/* The handset microphones are connected through the WCD9385. */
+	qcom,dmic-sample-rate = <4800000>;
+
+	status = "okay";
+};
+
 &i2c1 {
 	clock-frequency = <100000>;
 
@@ -674,6 +753,38 @@
 				remote-endpoint = <&pmic_glink_sbu>;
 			};
 		};
+	};
+};
+
+&i2c3 {
+	clock-frequency = <100000>;
+
+	status = "okay";
+
+	tfa9873_l: codec@34 {
+		compatible = "nxp,tfa9873",
+			     "nxp,tfa9872";
+		reg = <0x34>;
+
+		reset-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+
+		sound-name-prefix = "Speaker Left";
+		sound-channel = <0>;
+
+		#sound-dai-cells = <1>;
+	};
+
+	tfa9873_r: codec@35 {
+		compatible = "nxp,tfa9873",
+			     "nxp,tfa9872";
+		reg = <0x35>;
+
+		reset-gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
+
+		sound-name-prefix = "Speaker Right";
+		sound-channel = <1>;
+
+		#sound-dai-cells = <1>;
 	};
 };
 
@@ -939,6 +1050,13 @@
 	status = "okay";
 };
 
+&q6afedai {
+	dai@16 {
+		reg = <PRIMARY_MI2S_RX>;
+		qcom,sd-lines = <1>;
+	};
+};
+
 &qfprom {
 	vcc-supply = <&vdd_qfprom>;
 };
@@ -1024,6 +1142,67 @@
 	status = "okay";
 };
 
+&sound {
+	compatible = "xiaomi,lisa-sndcard";
+	model = "Xiaomi 11 Lite 5G NE";
+
+	pinctrl-0 = <&pri_mi2s_bck_active>, <&pri_mi2s_din_active>,
+		    <&pri_mi2s_dout_active>, <&pri_mi2s_ws_active>;
+	pinctrl-1 = <&pri_mi2s_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	audio-routing = "AMIC1", "MIC BIAS1",
+			"TX SWR_INPUT0", "ADC1_OUTPUT";
+
+	mm1-dai-link {
+		link-name = "MultiMedia1";
+
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+		};
+	};
+
+	mm2-dai-link {
+		link-name = "MultiMedia2";
+
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
+		};
+	};
+
+	i2s-dai-link {
+		link-name = "I2S Playback";
+
+		codec {
+			sound-dai = <&tfa9873_l 0>, <&tfa9873_r 0>;
+		};
+
+		cpu {
+			sound-dai = <&q6afedai PRIMARY_MI2S_RX>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+
+	wcd-capture-dai-link {
+		link-name = "WCD Capture";
+
+		codec {
+			sound-dai = <&wcd9385 1>, <&swr1 0>, <&lpass_tx_macro 0>;
+		};
+
+		cpu {
+			sound-dai = <&q6afedai TX_CODEC_DMA_TX_3>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+};
+
 &spi13 {
 	status = "okay";
 
@@ -1044,6 +1223,26 @@
 
 		touchscreen-size-x = <1080>;
 		touchscreen-size-y = <2400>;
+	};
+};
+
+&swr0 {
+	status = "okay";
+
+	wcd_rx: codec@0,4 {
+		compatible = "sdw20217010d00";
+		reg = <0 4>;
+		qcom,rx-port-mapping = <1 2 3 4 5>;
+	};
+};
+
+&swr1 {
+	status = "okay";
+
+	wcd_tx: codec@0,3 {
+		compatible = "sdw20217010d00";
+		reg = <0 3>;
+		qcom,tx-port-mapping = <1 2 3 4>;
 	};
 };
 
@@ -1182,6 +1381,56 @@
 		drive-strength = <2>;
 		bias-disable;
 	};
+
+	pri_mi2s_bck_active: pri-mi2s-bck-active-state {
+		pins = "gpio97";
+		function = "mi2s0_sck";
+		drive-strength = <4>;
+		bias-disable;
+		output-high;
+	};
+
+	pri_mi2s_din_active: pri-mi2s-din-active-state {
+		pins = "gpio98";
+		function = "mi2s0_data0";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	pri_mi2s_dout_active: pri-mi2s-dout-active-state {
+		pins = "gpio99";
+		function = "mi2s0_data1";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	pri_mi2s_ws_active: pri-mi2s-ws-active-state {
+		pins = "gpio100";
+		function = "mi2s0_ws";
+		drive-strength = <8>;
+		bias-disable;
+		output-high;
+	};
+
+	pri_mi2s_sleep: pri-mi2s-sleep-state {
+		pins = "gpio97", "gpio98", "gpio99", "gpio100";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	wcd_reset_n: wcd-reset-n-state {
+		pins = "gpio83";
+		function = "gpio";
+		drive-strength = <16>;
+	};
+
+	wcd_reset_n_sleep: wcd-reset-n-sleep-state {
+		pins = "gpio83";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-disable;
+	};
 };
 
 &uart5 {
@@ -1283,4 +1532,12 @@
 	qcom,calibration-variant = "Xiaomi_lisa";
 
 	status = "okay";
+};
+
+/*
+ * Use the v9.2 register layout until the upstream SC7280/Kodiak TX macro
+ * versioning is resolved.
+ */
+&lpass_tx_macro {
+	compatible = "qcom,sm8450-lpass-tx-macro";
 };

@@ -78,7 +78,9 @@ EXPORT_SYMBOL_GPL(qcom_q6v5_prepare);
  */
 int qcom_q6v5_unprepare(struct qcom_q6v5 *q6v5)
 {
-	disable_irq(q6v5->handover_irq);
+	if (!q6v5->handover_issued)
+		disable_irq(q6v5->handover_irq);
+
 	q6v5_load_state_toggle(q6v5, false);
 
 	/* Disable interconnect vote, in case handover never happened */
@@ -175,6 +177,7 @@ static irqreturn_t q6v5_handover_interrupt(int irq, void *data)
 	icc_set_bw(q6v5->path, 0, 0);
 
 	q6v5->handover_issued = true;
+	disable_irq_nosync(q6v5->handover_irq);
 
 	return IRQ_HANDLED;
 }

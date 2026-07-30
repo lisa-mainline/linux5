@@ -588,6 +588,7 @@
 
 &i2c1 {
 	clock-frequency = <100000>;
+
 	status = "okay";
 
 	pm8008: pmic@8 {
@@ -678,6 +679,7 @@
 
 &i2c4 {
 	clock-frequency = <100000>;
+
 	status = "okay";
 
 	vibrator@5a {
@@ -1106,6 +1108,7 @@
 
 &uart5 {
 	compatible = "qcom,geni-debug-uart";
+
 	status = "okay";
 };
 

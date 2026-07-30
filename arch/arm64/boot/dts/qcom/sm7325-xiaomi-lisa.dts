@@ -696,6 +696,26 @@
 	};
 };
 
+&i2c9 {
+	clock-frequency = <1000000>;
+	status = "okay";
+
+	nfc@28 {
+		compatible = "nxp,nxp-nci-i2c";
+		reg = <0x28>;
+
+		interrupt-parent = <&tlmm>;
+		interrupts = <41 IRQ_TYPE_LEVEL_HIGH>;
+
+		enable-gpios = <&tlmm 38 GPIO_ACTIVE_HIGH>;
+		firmware-gpios = <&tlmm 40 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&nfc_ctrl_default>, <&nfc_clkreq_default>,
+			    <&nfc_int_default>;
+		pinctrl-names = "default";
+	};
+};
+
 &ipa {
 	firmware-name = "qcom/sm7325/xiaomi/lisa/ipa_fws.mbn";
 
@@ -1068,6 +1088,29 @@
 		pins = "gpio80";
 		function = "mdp_vsync";
 		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	nfc_ctrl_default: nfc-ctrl-default-state {
+		pins = "gpio38", "gpio40";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	nfc_clkreq_default: nfc-clkreq-default-state {
+		pins = "gpio39";
+		function = "gpio";
+		drive-strength = <2>;
+		input-enable;
+		bias-disable;
+	};
+
+	nfc_int_default: nfc-int-default-state {
+		pins = "gpio41";
+		function = "gpio";
+		drive-strength = <2>;
+		input-enable;
 		bias-pull-down;
 	};
 

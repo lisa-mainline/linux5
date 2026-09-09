@@ -270,7 +270,7 @@ static int csot_vtdr6130_disable(struct drm_panel *panel)
 
 static int csot_vtdr6130_atomic_prepare(struct drm_panel *panel,
 					struct drm_crtc *crtc,
-					struct drm_atomic_state *atomic_state)
+					struct drm_atomic_commit *atomic_state)
 {
 	struct csot_vtdr6130 *ctx = to_csot_vtdr6130(panel);
 	struct drm_dsc_picture_parameter_set pps;

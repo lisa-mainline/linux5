@@ -1344,6 +1344,16 @@
 	};
 };
 
+&spi15 {
+	status = "okay";
+
+	ir-led@0 {
+		compatible = "ir-spi-led";
+		reg = <0>;
+		spi-max-frequency = <19200000>;
+	};
+};
+
 &swr0 {
 	status = "okay";
 

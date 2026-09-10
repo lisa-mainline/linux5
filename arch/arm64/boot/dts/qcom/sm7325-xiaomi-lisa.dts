@@ -254,6 +254,30 @@
 		regulator-boot-on;
 	};
 
+	vreg_cam_front_vana: regulator-camera-front-vana {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_front_vana";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-enable-ramp-delay = <135>;
+
+		gpio = <&tlmm 106 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		vin-supply = <&vreg_bob>;
+	};
+
+	vreg_cam_front_vdig: regulator-camera-front-vdig {
+		compatible = "regulator-fixed";
+		regulator-name = "camera_front_vdig";
+		regulator-min-microvolt = <1050000>;
+		regulator-max-microvolt = <1050000>;
+		regulator-enable-ramp-delay = <135>;
+
+		gpio = <&tlmm 108 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		vin-supply = <&vreg_s8b_1p256>;
+	};
+
 	/* S2B is really ebi.lvl but it's there for supply map completeness sake. */
 	vreg_s2b_0p7: smpa3-regulator {
 		compatible = "regulator-fixed";
@@ -594,11 +618,53 @@
 	status = "okay";
 
 	ports {
+		port@0 {
+			csiphy0_ep: endpoint {
+				clock-lanes = <7>;
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&camera_s5k3t2_ep>;
+			};
+		};
+
 		port@3 {
 			csiphy3_ep: endpoint {
 				clock-lanes = <7>;
 				data-lanes = <0 1 2 3>;
 				remote-endpoint = <&camera_imx355_ep>;
+			};
+		};
+	};
+};
+
+&cci0 {
+	status = "okay";
+};
+
+&cci0_i2c0 {
+	camera@10 {
+		compatible = "samsung,s5k3t2";
+		reg = <0x10>;
+
+		vdda-supply = <&vreg_cam_front_vana>;
+		vddd-supply = <&vreg_cam_front_vdig>;
+		vddio-supply = <&vreg_l5p>;
+
+		clocks = <&camcc CAM_CC_MCLK0_CLK>;
+		assigned-clocks = <&camcc CAM_CC_MCLK0_CLK>;
+		assigned-clock-rates = <19200000>;
+
+		reset-gpios = <&tlmm 20 GPIO_ACTIVE_LOW>;
+		pinctrl-0 = <&cam_mclk0_default>;
+		pinctrl-names = "default";
+
+		orientation = <0>; /* Front facing */
+		rotation = <270>;
+
+		port {
+			camera_s5k3t2_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <240000000 716800000>;
+				remote-endpoint = <&csiphy0_ep>;
 			};
 		};
 	};

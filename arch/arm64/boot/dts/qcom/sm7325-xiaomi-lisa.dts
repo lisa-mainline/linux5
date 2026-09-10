@@ -880,6 +880,7 @@
 
 &ipa {
 	firmware-name = "qcom/sm7325/xiaomi/lisa/ipa_fws.mbn";
+	memory-region = <&ipa_fw_mem>;
 
 	status = "okay";
 };
